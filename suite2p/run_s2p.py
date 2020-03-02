@@ -20,8 +20,8 @@ def default_ops():
     ops = {
         # file paths
         'look_one_level_down': False, # whether to look in all subfolders when searching for tiffs
-        'fast_disk': [], # used to store temporary binary file, defaults to save_path0
-        'delete_bin': False, # whether to delete binary file after processing
+        'fast_disk': ['/home/master'], # used to store temporary binary file, defaults to save_path0
+        'delete_bin': True, # whether to delete binary file after processing
         'mesoscan': False, # for reading in scanimage mesoscope files
         'bruker': False, # whether or not single page BRUKER tiffs!
         'h5py': [], # take h5py as input (deactivates data_path)
@@ -29,12 +29,13 @@ def default_ops():
         'save_path0': [], # stores results, defaults to first item in data_path
         'save_folder': [],
         'subfolders': [],
+        'mesc': True,
         # main settings
         'nplanes' : 1, # each tiff has these many planes in sequence
         'nchannels' : 1, # each tiff has these many channels per plane
         'functional_chan' : 1, # this channel is used to extract functional ROIs (1-based)
-        'tau':  1., # this is the main parameter for deconvolution
-        'fs': 10.,  # sampling rate (PER PLANE e.g. for 12 plane recordings it will be around 2.5)
+        'tau':  2., # this is the main parameter for deconvolution
+        'fs': 31.4,  # sampling rate (PER PLANE e.g. for 12 plane recordings it will be around 2.5)
         'force_sktiff': False, # whether or not to use scikit-image for tiff reading
         'frames_include': -1,
         # output settings
@@ -74,7 +75,7 @@ def default_ops():
         # cell detection settings
         'roidetect': True, # whether or not to run ROI extraction
         'sparse_mode': True, # whether or not to run sparse_mode
-        'diameter': 12, # if not sparse_mode, use diameter for filtering and extracting
+        'diameter': 6, # if not sparse_mode, use diameter for filtering and extracting
         'spatial_scale': 0, # 0: multi-scale; 1: 6 pixels, 2: 12 pixels, 3: 24 pixels, 4: 48 pixels
         'connected': True, # whether or not to keep ROIs fully connected (set to 0 for dendrites)
         'nbinned': 5000, # max number of binned frames for cell detection
@@ -84,7 +85,7 @@ def default_ops():
         'high_pass': 100, # running mean subtraction with window of size 'high_pass' (use low values for 1P)
         # ROI extraction parameters
         'inner_neuropil_radius': 2, # number of pixels to keep between ROI and neuropil donut
-        'min_neuropil_pixels': 350, # minimum number of pixels in the neuropil
+        'min_neuropil_pixels': 200, # minimum number of pixels in the neuropil
         'allow_overlap': False, # pixels that are overlapping are thrown out (False) or added to both ROIs (True)
         # channel 2 detection settings (stat[n]['chan2'], stat[n]['not_chan2'])
         'chan2_thres': 0.65, # minimum for detection of brightness on channel 2
