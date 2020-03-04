@@ -30,47 +30,37 @@ def h5py_to_binary(ops):
     nchannels = ops1[0]['nchannels']
 
     # open all binary files for writing
+
+    ops1, h5list, reg_file, reg_file_chan2 = utils.find_files_open_binaries(ops1, True)
+    for ops in ops1:
+        if 'data_path' in ops and len(ops['data_path'])==0:
+            ops['data_path'] = [os.path.dirname(ops['h5py'])]
+        elif 'data_path' not in ops:
+            ops['data_path'] = [os.path.dirname(ops['h5py'])]
     if ops['mesc']:
-        ops1, h5list, reg_file, reg_file_chan2 = utils.find_files_open_binaries(ops1, True)
-        for ops in ops1:
-            if 'data_path' in ops and len(ops['data_path'])==0:
-                ops['data_path'] = [os.path.dirname(ops['h5py'])]
-            elif 'data_path' not in ops:
-                ops['data_path'] = [os.path.dirname(ops['h5py'])]
         ops1[0]['h5list'] = ops1[0]['mesc_files']
         mesc_files = ops1[0]['mesc_files']
         mesc_fidx = ops1[0]['mesc_fidx']
         keys = ops1[0]['keys']
-
-        iall = 0
-        for j in range(ops['nplanes']):
-            ops1[j]['nframes_per_folder'] = np.zeros(len(h5list), np.int32)
     else:
-        ops1, h5list, reg_file, reg_file_chan2 = utils.find_files_open_binaries(ops1, True)
-        for ops in ops1:
-            if 'data_path' in ops and len(ops['data_path'])==0:
-                ops['data_path'] = [os.path.dirname(ops['h5py'])]
-            elif 'data_path' not in ops:
-                ops['data_path'] = [os.path.dirname(ops['h5py'])]
         ops1[0]['h5list'] = h5list
         keys = ops1[0]['h5py_key']
         if isinstance(keys, str):
             keys = [keys]
-        iall = 0
-        for j in range(ops['nplanes']):
-            ops1[j]['nframes_per_folder'] = np.zeros(len(h5list), np.int32)
+    iall = 0
+    for j in range(ops['nplanes']):
+        ops1[j]['nframes_per_folder'] = np.zeros(len(h5list), np.int32)
 
     if ops['mesc']:
         for ikey in keys:
-
+            print('Writing loop: {}'.format(ikey), end='\r')
             ifileidx = mesc_fidx[keys.index(ikey)]
             ifile = mesc_files[ifileidx]
+
             with h5py.File(ifile, 'r') as f:
                 # Reading from mesc file.
                 # keep track of the plane identity of the first frame (channel identity is assumed always 0)
                 nbatch = nplanes*nchannels*math.ceil(ops1[0]['batch_size']/(nplanes*nchannels))
-                print(keys)
-                print(mesc_files)
                 nframes_all = f[ikey + '/Channel_1'].shape[0]
 
                 if ops1[0]['nchannels'] > 1:
@@ -82,6 +72,7 @@ def h5py_to_binary(ops):
                     nfunc = ops['functional_chan'] - 1
                 else:
                     nfunc = 0
+
                 # loop over all tiffs
                 ik = 0
                 while 1:
@@ -91,7 +82,6 @@ def h5py_to_binary(ops):
                         irange = np.arange(ik, min(ik+nbatch, nframes_all), 1)
                     if irange.size==0:
                         break
-
                     if ops1[0]['nchannels'] > 1:
                         key_1 = ikey + '/Channel_0'
                         key_2 = ikey + '/Channel_1'
@@ -105,36 +95,36 @@ def h5py_to_binary(ops):
                         im[0::2] = im_1
                         im[1::2] = im_2
                     else:
-                        im = f[ikey + '/channel_0']
+                        im = f[ikey + '/Channel_0']
                         im = np.invert(im)
 
-                        nframes = im.shape[0]
-                        if type(im[0,0,0]) == np.uint16:
-                            im = im / 2
-                        for j in range(0,nplanes):
-                            if iall==0:
-                                ops1[j]['meanImg'] = np.zeros((im.shape[1],im.shape[2]),np.float32)
-                                if nchannels>1:
-                                    ops1[j]['meanImg_chan2'] = np.zeros((im.shape[1],im.shape[2]),np.float32)
-                                ops1[j]['nframes'] = 0
-                            i0 = nchannels * ((j)%nplanes)
-                            im2write = im[np.arange(int(i0)+nfunc, nframes, nplanes*nchannels),:,:].astype(np.int16)
-                            reg_file[j].write(bytearray(im2write))
-                            ops1[j]['meanImg'] += im2write.astype(np.float32).sum(axis=0)
+                    nframes = im.shape[0]
+                    if type(im[0,0,0]) == np.uint16:
+                        im = im / 2
+                    for j in range(0,nplanes):
+                        if iall==0:
+                            ops1[j]['meanImg'] = np.zeros((im.shape[1],im.shape[2]),np.float32)
                             if nchannels>1:
-                                im2write = im[np.arange(int(i0)+1-nfunc, nframes, nplanes*nchannels),:,:].astype(np.int16)
-                                reg_file_chan2[j].write(bytearray(im2write))
-                                ops1[j]['meanImg_chan2'] += im2write.astype(np.float32).sum(axis=0)
-                            ops1[j]['nframes'] += im2write.shape[0]
-                            ops1[j]['nframes_per_folder'][ifileidx] += im2write.shape[0]
-                        if ops1[0]['nchannels'] > 1:
-                            # Because need to take half im.shape[0] frames from
-                            # each of the two channels.
-                            ik += int(nframes/2)
-                            iall += int(nframes/2)
-                        else:
-                            ik += nframes
-                            iall += nframes
+                                ops1[j]['meanImg_chan2'] = np.zeros((im.shape[1],im.shape[2]),np.float32)
+                            ops1[j]['nframes'] = 0
+                        i0 = nchannels * ((j)%nplanes)
+                        im2write = im[np.arange(int(i0)+nfunc, nframes, nplanes*nchannels),:,:].astype(np.int16)
+                        reg_file[j].write(bytearray(im2write))
+                        ops1[j]['meanImg'] += im2write.astype(np.float32).sum(axis=0)
+                        if nchannels>1:
+                            im2write = im[np.arange(int(i0)+1-nfunc, nframes, nplanes*nchannels),:,:].astype(np.int16)
+                            reg_file_chan2[j].write(bytearray(im2write))
+                            ops1[j]['meanImg_chan2'] += im2write.astype(np.float32).sum(axis=0)
+                        ops1[j]['nframes'] += im2write.shape[0]
+                        ops1[j]['nframes_per_folder'][ifileidx] += im2write.shape[0]
+                    if ops1[0]['nchannels'] > 1:
+                        # Because need to take half im.shape[0] frames from
+                        # each of the two channels.
+                        ik += int(nframes/2)
+                        iall += int(nframes/2)
+                    else:
+                        ik += nframes
+                        iall += nframes
     else:
         for ih5,h5 in enumerate(h5list):
             with h5py.File(h5, 'r') as f:
