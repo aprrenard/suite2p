@@ -1,4 +1,4 @@
-name: suite2p
+name: suite2p_bathellierlab
 dependencies:
   - python>=3.7,<3.8
   - pip
@@ -13,6 +13,5 @@ dependencies:
   - scikit-learn
   - pyqt
   - pip:
-    - suite2p
+    - git+https://github.com/aprrenard/suite2p.git#egg=suite2p
     - rastermap>0.1.0
-    
