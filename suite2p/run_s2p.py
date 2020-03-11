@@ -21,7 +21,7 @@ def default_ops():
         # file paths
         'look_one_level_down': False, # whether to look in all subfolders when searching for tiffs
         'fast_disk': ['/home/master'], # used to store temporary binary file, defaults to save_path0
-        'delete_bin': True, # whether to delete binary file after processing
+        'delete_bin': False, # whether to delete binary file after processing
         'mesoscan': False, # for reading in scanimage mesoscope files
         'bruker': False, # whether or not single page BRUKER tiffs!
         'h5py': [], # take h5py as input (deactivates data_path)
@@ -85,7 +85,7 @@ def default_ops():
         'high_pass': 100, # running mean subtraction with window of size 'high_pass' (use low values for 1P)
         # ROI extraction parameters
         'inner_neuropil_radius': 2, # number of pixels to keep between ROI and neuropil donut
-        'min_neuropil_pixels': 200, # minimum number of pixels in the neuropil
+        'min_neuropil_pixels': 350, # minimum number of pixels in the neuropil
         'allow_overlap': False, # pixels that are overlapping are thrown out (False) or added to both ROIs (True)
         # channel 2 detection settings (stat[n]['chan2'], stat[n]['not_chan2'])
         'chan2_thres': 0.65, # minimum for detection of brightness on channel 2

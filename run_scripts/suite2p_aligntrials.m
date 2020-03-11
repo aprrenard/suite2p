@@ -78,7 +78,7 @@ if ~isscalar(fmesc)
         'OK', 'Change', 'OK');
     if isempty(answer), disp 'interrupted', return, end
     if strcmp(answer, 'Change')
-        fmesc = fmesc(fn_listedit(fmesc));
+        fmesc = fmesc(fn_list(fmesc));
     end
 end
 
@@ -179,6 +179,7 @@ end
 
 %% Manual alignment of trials
 
+seq = [];
 hmesc0 = hmesc; hdat0 = hdat;
 A = cell(1,length(hmesc));
 for i=1:length(hmesc)
@@ -192,15 +193,34 @@ for i=1:length(hdat)
 end
 
 if isempty(hdat)
-
-    disp 'select trials'
-
-    deltaA = ([hmesc0.time] - [hmesc0([1 1:end-1]).time])*sperday;
-    A1 = A; for i=1:length(A), A1{i}=[A{i} sprintf(' (+%.0fs)',deltaA(i))]; end
-
-    indices = fn_listedit(A1);
-    hmesc = hmesc0(indices);
-
+    
+    % Align mesc trial with binary stimulation sequence (Anthony's protocol).   
+    seq_file = fullfile(datafolder, [data_name, '_sequence.bin']);
+    
+    if ~isfile(seq_file)
+        answer = questdlg('No binary stimulation sequence found (Anthony). Was there no stimulation?','Stimulation sequence','Indeed','Cancel','Indeed');
+        if ~strcmp(answer,'Indeed'), disp 'interrupted', return, end
+    
+        disp 'select trials'
+        deltaA = ([hmesc0.time] - [hmesc0([1 1:end-1]).time])*sperday;
+        A1 = A; for i=1:length(A), A1{i}=[A{i} sprintf(' (+%.0fs)',deltaA(i))]; end
+        indices = fn_listedit(A1);
+        hmesc = hmesc0(indices);
+    else
+        binary_sequence = true;
+        f = fopen(seq_file);
+        seq = fread(f, 'uint8');
+        fclose(f);
+        
+        disp 'alignment between mesc and binary sequence'
+        deltaA = ([hmesc0.time] - [hmesc0([1 1:end-1]).time])*sperday;
+        A1 = A; for i=1:length(A), A1{i}=[A{i} sprintf(' (+%.0fs)',deltaA(i))]; end
+        
+        indices = fn_listedit(A1, seq);
+        hmesc = hmesc0(indices(:,1));
+        seq = seq(indices(:,2));
+    end
+    
 else    
 
     disp 'alignment between MESc and Elphy'
@@ -265,7 +285,6 @@ else
 
     hmesc = hmesc0(indices(:,1));
     hdat = hdat0(indices(:,2));
-
 end
 
 %% Same protocol for every Elphy file or not?
@@ -324,34 +343,35 @@ elseif ~isempty(hdat)
 
 end
 
-%% Make list of keys to read from mesc files.
 
-[nfiles, nunits] = size(hmesc);
+%% Make list of keys to read from mesc files and retrieve dt and zdim.
 
+nloops = length(hmesc);
 key_count = 1;
 keys = {};
 
-for ifile = 1:nfiles
-    for iunit=1:nunits
-        % Solve session and unit indices.
-        session = hmesc(ifile, iunit).desc;
-        session = session(8);
-        unit = strsplit(hmesc(ifile, iunit).desc);
-        unit = unit{1};
-        unit = unit(14:end);
-
-        keys{key_count} = sprintf('/MSession_%s/MUnit_%s', session, unit);
-        key_count = key_count + 1;
-    end
+for iloop=1:nloops
+    % Solve session and unit indices.
+    session = hmesc(iloop).desc;
+    session = session(8);
+    unit = strsplit(hmesc(iloop).desc);
+    unit = unit{1};
+    unit = unit(14:end);
+    keys{key_count} = sprintf('/MSession_%s/MUnit_%s', session, unit);
+    % Retrieve dt and zdim for each loop.
+    hmesc(iloop).zdim = h5readatt(fmescfull{hmesc(iloop).file}, keys{key_count}, 'ZDim');
+    hmesc(iloop).dt = h5readatt(fmescfull{hmesc(iloop).file}, keys{key_count}, 'ZAxisConversionConversionLinearScale');
+    key_count = key_count + 1;
 end
 
 
 %% Save important info for suite2p
 
-disp 'saving info for later'
+disp 'Saving info for suite2p.'
 [filepath, name, ext] = fileparts(finfo);
 finfo_suite2p = [name, '_suite2p', ext];
-finfo_suite2p = fullfile(filepath, finfo_suite2p);  
-fn_savevar(finfo_suite2p,analysisfolder, fmescfull, hmesc, keys)
+finfo_suite2p = fullfile(filepath, finfo_suite2p);
+
+fn_savevar(finfo_suite2p, analysisfolder, fmescfull, hmesc, hdat, keys, xpar, seq)
 
 disp('Done, you can run suite2p!')

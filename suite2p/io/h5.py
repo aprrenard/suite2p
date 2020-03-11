@@ -61,7 +61,7 @@ def h5py_to_binary(ops):
                 # Reading from mesc file.
                 # keep track of the plane identity of the first frame (channel identity is assumed always 0)
                 nbatch = nplanes*nchannels*math.ceil(ops1[0]['batch_size']/(nplanes*nchannels))
-                nframes_all = f[ikey + '/Channel_1'].shape[0]
+                nframes_all = f[ikey + '/Channel_0'].shape[0]
 
                 if ops1[0]['nchannels'] > 1:
                     # If two channels, data is read from two different
